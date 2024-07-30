@@ -1,0 +1,7 @@
+Package: ppt-maker-app
+Version: 1.0.0
+Section: office
+Priority: optional
+Architecture: all
+Maintainer: kasinadhsarma
+Description: An AI-powered PowerPoint maker for Linux with GUI.
