@@ -1,0 +1,63 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>AI PowerPoint Maker</title>
+    <link rel="stylesheet" href="styles.css">
+</head>
+<body>
+    <header>
+        <h1>AI PowerPoint Maker</h1>
+        <nav>
+            <ul>
+                <li><a href="#" id="fileMenu">File</a></li>
+                <li><a href="#" id="editMenu">Edit</a></li>
+                <li><a href="#" id="viewMenu">View</a></li>
+                <li><a href="#" id="insertMenu">Insert</a></li>
+                <li><a href="#" id="formatMenu">Format</a></li>
+                <li><a href="#" id="toolsMenu">Tools</a></li>
+                <li><a href="#" id="helpMenu">Help</a></li>
+            </ul>
+        </nav>
+    </header>
+    <main>
+        <aside id="sidebar">
+            <h2>Slides</h2>
+            <div id="slideThumbnails"></div>
+        </aside>
+        <section id="mainContent">
+            <div id="toolbar">
+                <button id="newSlideBtn">New Slide</button>
+                <button id="undoBtn">Undo</button>
+                <button id="redoBtn">Redo</button>
+                <select id="layoutSelector">
+                    <option value="title">Title Slide</option>
+                    <option value="content">Content Slide</option>
+                    <option value="twoColumn">Two Column</option>
+                </select>
+                <button id="presentBtn">Present</button>
+            </div>
+            <div id="formatToolbar">
+                <select id="fontSelector"></select>
+                <select id="fontSizeSelector"></select>
+                <button id="boldBtn">B</button>
+                <button id="italicBtn">I</button>
+                <button id="underlineBtn">U</button>
+                <input type="color" id="textColorPicker">
+                <button id="alignLeftBtn">Left</button>
+                <button id="alignCenterBtn">Center</button>
+                <button id="alignRightBtn">Right</button>
+            </div>
+            <canvas id="slide-canvas" width="960" height="540"></canvas>
+        </section>
+    </main>
+    <footer>
+        <div id="statusBar">
+            <span id="slideNumber">Slide 1 of 1</span>
+            <span id="zoomLevel">Zoom: 100%</span>
+        </div>
+    </footer>
+    <script src="renderer.js"></script>
+</body>
+</html>
