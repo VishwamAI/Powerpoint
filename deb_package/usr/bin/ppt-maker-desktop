@@ -1,0 +1,8 @@
+#!/bin/bash
+# Launcher script for ppt-maker-desktop
+
+# Navigate to the application directory
+cd /usr/share/ppt-maker-desktop
+
+# Start the application
+./ppt-maker-desktop

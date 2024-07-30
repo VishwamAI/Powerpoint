@@ -1,0 +1,9 @@
+Package: ppt-maker-desktop
+Version: 1.0.0
+Section: custom
+Priority: optional
+Architecture: amd64
+Depends: libgtk-3-0 (>=3.10), libnotify4, libnss3 (>=2:3.26), libxss1, libxtst6, xdg-utils, libatspi2.0-0, libuuid1 (>=2.16), libappindicator3-1, libsecret-1-0
+Maintainer: Devin <devin@pptmaker.example>
+Description: AI-powered PowerPoint maker with a GUI for Linux.
+ This application features auto-prompt and development change through copilot-like features. It is free for Linux users and includes user-related templates and verbal communication features.
