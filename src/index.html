@@ -1,12 +1,114 @@
 <!DOCTYPE html>
-<html>
-  <head>
-    <meta charset="UTF-8" />
-    <title>Hello World!</title>
-    <link rel="stylesheet" href="index.css" />
-  </head>
-  <body>
-    <h1>💖 Hello World!</h1>
-    <p>Welcome to your Electron application.</p>
-  </body>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>AI PowerPoint Maker</title>
+    <link rel="stylesheet" href="index.css">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.1.1/css/all.min.css">
+</head>
+<body>
+    <div id="app">
+        <header style="background-color: #1a73e8; color: white; padding: 10px 0;">
+            <h1 style="font-size: 28px; font-weight: bold; margin: 0;">AI PowerPoint Maker</h1>
+            <nav id="main-menu">
+                <button id="file-menu"><i class="fas fa-file"></i> File</button>
+                <button id="edit-menu"><i class="fas fa-edit"></i> Edit</button>
+                <button id="view-menu"><i class="fas fa-eye"></i> View</button>
+                <button id="insert-menu"><i class="fas fa-plus"></i> Insert</button>
+            </nav>
+        </header>
+        <main class="flex-container" style="display: flex; height: calc(100vh - 120px);">
+            <aside id="slide-sorter" style="width: 15%; background-color: #f1f3f4; padding: 10px; overflow-y: auto;">
+                <h2>Slides</h2>
+                <div id="slide-thumbnails">
+                    <!-- Slide thumbnails will be dynamically added here -->
+                </div>
+                <button id="new-slide" style="width: 100%; margin-top: 10px;"><i class="fas fa-plus"></i> New Slide</button>
+            </aside>
+            <div id="main-content" style="width: 65%; display: flex; flex-direction: column;">
+                <div id="toolbar" style="background-color: #f1f3f4; padding: 10px; display: flex; justify-content: space-between; align-items: center;">
+                    <div>
+                        <select id="template-select">
+                            <option value="">Layout</option>
+                            <option value="title">Title Slide</option>
+                            <option value="content">Content Slide</option>
+                            <option value="two-column">Two Column</option>
+                            <option value="image-text">Image with Text</option>
+                        </select>
+                        <button id="add-text"><i class="fas fa-font"></i> Text Box</button>
+                        <button id="add-shape"><i class="fas fa-shapes"></i> Shape</button>
+                        <button id="add-image"><i class="fas fa-image"></i> Image</button>
+                    </div>
+                    <div>
+                        <button id="auto-prompt"><i class="fas fa-magic"></i> Auto-Prompt</button>
+                        <button id="voice-command"><i class="fas fa-microphone"></i> Voice</button>
+                        <button id="generate-ai-content"><i class="fas fa-robot"></i> AI Content</button>
+                    </div>
+                </div>
+                <div id="slide-editor" style="flex-grow: 1; display: flex; flex-direction: column; background-color: #e8eaed; position: relative;">
+                    <div id="slide-canvas-container" style="flex-grow: 1; display: flex; justify-content: center; align-items: center;">
+                        <canvas id="slide-canvas" width="960" height="540" style="box-shadow: 0 0 10px rgba(0,0,0,0.1);"></canvas>
+                    </div>
+                    <div id="zoom-control" style="position: absolute; bottom: 10px; right: 10px;">
+                        <button id="zoom-out"><i class="fas fa-search-minus"></i></button>
+                        <span id="zoom-level">100%</span>
+                        <button id="zoom-in"><i class="fas fa-search-plus"></i></button>
+                    </div>
+                </div>
+            </div>
+            <aside id="properties-panel" style="width: 20%; background-color: #f1f3f4; padding: 10px;">
+                <h2>Formatting</h2>
+                <div id="text-formatting">
+                    <select id="font-family" style="width: 100%; margin-bottom: 5px;">
+                        <option value="Arial">Arial</option>
+                        <option value="Helvetica">Helvetica</option>
+                        <option value="Times New Roman">Times New Roman</option>
+                        <option value="Roboto">Roboto</option>
+                        <option value="Open Sans">Open Sans</option>
+                    </select>
+                    <select id="font-size" style="width: 100%; margin-bottom: 5px;">
+                        <option value="12">12</option>
+                        <option value="16">16</option>
+                        <option value="20">20</option>
+                        <option value="24">24</option>
+                        <option value="32">32</option>
+                        <option value="48">48</option>
+                    </select>
+                    <div style="display: flex; justify-content: space-between;">
+                        <button id="bold-text"><i class="fas fa-bold"></i></button>
+                        <button id="italic-text"><i class="fas fa-italic"></i></button>
+                        <button id="underline-text"><i class="fas fa-underline"></i></button>
+                        <input type="color" id="text-color" value="#000000">
+                    </div>
+                </div>
+                <div id="shape-formatting" style="margin-top: 10px;">
+                    <h3>Shape Properties</h3>
+                    <input type="color" id="shape-fill-color" value="#FFFFFF">
+                    <input type="color" id="shape-border-color" value="#000000">
+                    <input type="number" id="shape-border-width" min="0" max="10" value="1">
+                </div>
+            </aside>
+        </main>
+        <footer style="background-color: #f1f3f4; padding: 10px; display: flex; justify-content: space-between; align-items: center;">
+            <div id="slide-navigation">
+                <button id="prev-slide"><i class="fas fa-chevron-left"></i></button>
+                <span id="slide-number">Slide 1 of 1</span>
+                <button id="next-slide"><i class="fas fa-chevron-right"></i></button>
+            </div>
+            <div id="presentation-controls">
+                <button id="start-presentation"><i class="fas fa-play"></i> Present</button>
+            </div>
+            <div id="additional-controls">
+                <button id="brand-sync"><i class="fas fa-sync"></i> Brand Sync</button>
+                <button id="export-ppt"><i class="fas fa-file-export"></i> Export</button>
+            </div>
+        </footer>
+    </div>
+    <div id="loading-indicator" style="display: none; position: fixed; top: 50%; left: 50%; transform: translate(-50%, -50%); background-color: rgba(0,0,0,0.8); color: white; padding: 20px; border-radius: 10px; text-align: center;">
+        <div class="spinner"></div>
+        <p>Processing...</p>
+    </div>
+    <script src="renderer.js"></script>
+</body>
 </html>

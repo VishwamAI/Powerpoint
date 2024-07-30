@@ -50,9 +50,10 @@ function saveState() {
 
 function undo() {
     if (undoStack.length > 0) {
-        redoStack.push(JSON.stringify(slides));
-        slides = JSON.parse(undoStack.pop());
-        currentSlideIndex = Math.min(currentSlideIndex, slides.length - 1);
+        redoStack.push(JSON.stringify({ slides, currentSlideIndex }));
+        const prevState = JSON.parse(undoStack.pop());
+        slides = prevState.slides;
+        currentSlideIndex = prevState.currentSlideIndex;
         loadSlide(currentSlideIndex);
     }
     updateUndoRedoButtons();
@@ -60,9 +61,10 @@ function undo() {
 
 function redo() {
     if (redoStack.length > 0) {
-        undoStack.push(JSON.stringify(slides));
-        slides = JSON.parse(redoStack.pop());
-        currentSlideIndex = Math.min(currentSlideIndex, slides.length - 1);
+        undoStack.push(JSON.stringify({ slides, currentSlideIndex }));
+        const nextState = JSON.parse(redoStack.pop());
+        slides = nextState.slides;
+        currentSlideIndex = nextState.currentSlideIndex;
         loadSlide(currentSlideIndex);
     }
     updateUndoRedoButtons();
@@ -82,28 +84,56 @@ function updateUndoRedoButtons() {
     document.getElementById('redoBtn').disabled = redoStack.length === 0;
 }
 
-function createNewSlide() {
+function createNewSlide(template = 'content') {
     saveState();
     const slide = {
         content: canvas.toDataURL(),
-        elements: []
+        elements: [...slideTemplates[template].elements],
+        template: template
     };
     slides.push(slide);
     currentSlideIndex = slides.length - 1;
     clearSlide();
+    renderSlideElements(slide.elements);
     updateSlideNavigation();
+    sendSlideUpdate(currentSlideIndex, slide.content);
 
-    // Send update to other users
-    if (socket && socket.readyState === WebSocket.OPEN) {
-        sendSlideUpdate(currentSlideIndex, slide.content);
-    }
+    // Create and add thumbnail
+    const thumbnail = createThumbnail(slide.content);
+    const thumbnailsContainer = document.getElementById('slide-thumbnails');
+    thumbnailsContainer.appendChild(thumbnail);
+
+    // Update slide count
+    updateSlideCount();
+
+    // Apply template-specific styles
+    applyTemplateStyles(template);
+
+    // Trigger Copilot suggestions for the new slide
+    generateCopilotSuggestions(slide);
+
+    // Update analytics
+    updateAnalytics('slideCreated', { template: template });
+}
+
+function createThumbnail(slideContent) {
+    const thumbnail = document.createElement('div');
+    thumbnail.className = 'thumbnail';
+    thumbnail.innerHTML = `<img src="${slideContent}" alt="Slide ${slides.length}">`;
+    thumbnail.onclick = () => goToSlide(slides.length - 1);
+    return thumbnail;
+}
+
+function updateSlideCount() {
+    const slideCountElement = document.getElementById('slide-count');
+    slideCountElement.textContent = `Slide ${currentSlideIndex + 1} of ${slides.length}`;
 }
 
 function updateSlideNavigation() {
     const slideNumber = document.getElementById('slideNumber');
     slideNumber.textContent = `Slide ${currentSlideIndex + 1} of ${slides.length}`;
 
-    const thumbnails = document.getElementById('slideThumbnails');
+    const thumbnails = document.getElementById('slide-thumbnails');
     thumbnails.innerHTML = '';
     slides.forEach((slide, index) => {
         const thumbnail = document.createElement('div');
@@ -116,7 +146,6 @@ function updateSlideNavigation() {
         thumbnails.appendChild(thumbnail);
     });
 
-    // Update navigation buttons
     document.getElementById('prevSlideBtn').disabled = currentSlideIndex === 0;
     document.getElementById('nextSlideBtn').disabled = currentSlideIndex === slides.length - 1;
 }
@@ -171,8 +200,16 @@ function addText() {
     const text = prompt('Enter text:');
     if (text) {
         saveState();
-        ctx.font = '20px Arial';
-        ctx.fillText(text, 50, 50);
+        const newElement = {
+            type: 'text',
+            content: text,
+            x: 50,
+            y: 50,
+            font: '20px Arial',
+            color: '#000000'
+        };
+        slides[currentSlideIndex].elements.push(newElement);
+        renderSlideElements([newElement]);
         speakText("Text added: " + text);
     }
 }
@@ -181,13 +218,18 @@ function addShape() {
     const shape = prompt('Enter shape type (rectangle, circle):');
     if (shape) {
         saveState();
-        if (shape === 'rectangle') {
-            ctx.strokeRect(50, 50, 100, 80);
-        } else if (shape === 'circle') {
-            ctx.beginPath();
-            ctx.arc(100, 100, 50, 0, 2 * Math.PI);
-            ctx.stroke();
-        }
+        const newElement = {
+            type: 'shape',
+            shape: shape,
+            x: 50,
+            y: 50,
+            width: 100,
+            height: 80,
+            radius: 50,
+            color: '#000000'
+        };
+        slides[currentSlideIndex].elements.push(newElement);
+        renderSlideElements([newElement]);
     }
 }
 
@@ -197,68 +239,108 @@ function addImage() {
         const img = new Image();
         img.onload = function() {
             saveState();
-            ctx.drawImage(img, 50, 50, 200, 200);
+            const newElement = {
+                type: 'image',
+                src: imageUrl,
+                x: 50,
+                y: 50,
+                width: 200,
+                height: 200
+            };
+            slides[currentSlideIndex].elements.push(newElement);
+            renderSlideElements([newElement]);
         }
         img.src = imageUrl;
     }
 }
 
 async function generateAIContent() {
-    const prompt = prompt('Enter a prompt for AI content generation:');
+    const prompt = document.getElementById('ai-prompt-input').value;
+    const currentSlide = slides[currentSlideIndex];
+
     if (prompt) {
         try {
-            clearSlide();
-            const response = await window.electronAPI.generateContent(prompt);
-            ctx.font = '24px Arial';
-            ctx.fillStyle = '#333';
+            showLoadingIndicator('Generating AI content...', true);
+            const context = getSlideContext(currentSlide);
+            const response = await window.electronAPI.generateContent(prompt, context);
+            hideLoadingIndicator();
 
-            const lines = response.split('\n');
-            let y = 50;
-            lines.forEach((line, index) => {
-                if (index === 0) {
-                    ctx.font = 'bold 32px Arial';
-                    ctx.fillText(line, 50, y);
-                    y += 60;
-                    ctx.font = '24px Arial';
-                } else {
-                    const words = line.split(' ');
-                    let lineText = '';
-                    words.forEach(word => {
-                        const testLine = lineText + word + ' ';
-                        const metrics = ctx.measureText(testLine);
-                        if (metrics.width > canvas.width - 100) {
-                            ctx.fillText(lineText, 50, y);
-                            lineText = word + ' ';
-                            y += 30;
-                        } else {
-                            lineText = testLine;
-                        }
-                    });
-                    ctx.fillText(lineText, 50, y);
-                    y += 30;
-                }
-            });
+            const newElements = parseAIResponse(response);
+            currentSlide.elements.push(...newElements);
+
+            clearSlide();
+            renderSlideElements(currentSlide.elements);
             saveState();
+            updateSlideNavigation();
+
+            showNotification('AI content generated successfully!', 'success');
+            speakText('AI content has been added to the slide.');
+
+            updateCopilotSuggestions(response);
         } catch (error) {
             console.error('Error generating AI content:', error);
-            alert('Failed to generate AI content. Please try again.');
+            hideLoadingIndicator();
+            showNotification('Failed to generate AI content. Please try again.', 'error');
+            speakText('An error occurred while generating AI content.');
         }
+    } else {
+        showNotification('Please enter a prompt for AI content generation.', 'warning');
+        speakText('Please enter a prompt for AI content generation.');
     }
+    updateARIAAttributes();
+}
+
+function getSlideContext(slide) {
+    return slide.elements.map(el => el.content || '').join(' ');
+}
+
+function parseAIResponse(response) {
+    // Parse the AI response and create appropriate slide elements
+    const elements = [];
+    const lines = response.split('\n');
+
+    lines.forEach((line, index) => {
+        if (line.trim()) {
+            elements.push({
+                type: 'text',
+                content: line,
+                x: 50,
+                y: 50 + (index * 30),
+                font: index === 0 ? 'bold 28px Arial' : '24px Arial',
+                color: '#333333'
+            });
+        }
+    });
+
+    return elements;
+}
+
+function updateCopilotSuggestions(aiResponse) {
+    const suggestionsElement = document.getElementById('suggestions-content');
+    const suggestions = generateSuggestions(aiResponse);
+    suggestionsElement.innerHTML = suggestions.map(s => `<p>${s}</p>`).join('');
+}
+
+function generateSuggestions(aiResponse) {
+    // Generate Copilot suggestions based on the AI response
+    // This is a placeholder implementation
+    return [
+        "Consider adding an image to illustrate this point.",
+        "You might want to break this content into bullet points for clarity.",
+        "Think about adding a chart to represent this data visually."
+    ];
 }
 
 function applyTemplate() {
-    const templateName = document.getElementById('layoutSelector').value;
+    const templateName = document.getElementById('template-select').value;
     if (slideTemplates[templateName]) {
         saveState();
         const template = slideTemplates[templateName];
         clearSlide();
         ctx.fillStyle = template.background;
         ctx.fillRect(0, 0, canvas.width, canvas.height);
-        renderSlideElements(template.elements);
-        slides[currentSlideIndex] = {
-            content: canvas.toDataURL(),
-            elements: [...template.elements]
-        };
+        slides[currentSlideIndex].elements = [...template.elements];
+        renderSlideElements(slides[currentSlideIndex].elements);
         updateSlideNavigation();
     } else {
         alert('Template not found');
@@ -266,9 +348,44 @@ function applyTemplate() {
 }
 
 function startPresentation() {
-    document.body.requestFullscreen();
-    // Hide UI elements and show only the canvas
-    // Implement slide navigation for presentation mode
+    document.body.requestFullscreen().then(() => {
+        document.getElementById('presentationMode').style.display = 'flex';
+        document.getElementById('editMode').style.display = 'none';
+        document.getElementById('toolbar').style.display = 'none';
+        document.getElementById('slide-controls').style.display = 'flex';
+        goToSlide(0);
+        updatePresentationControls();
+    }).catch(err => {
+        console.error('Error attempting to enable full-screen mode:', err.message);
+    });
+}
+
+function endPresentation() {
+    if (document.fullscreenElement) {
+        document.exitFullscreen().then(() => {
+            exitPresentationMode();
+        }).catch(err => {
+            console.error('Error attempting to exit full-screen mode:', err.message);
+            exitPresentationMode();
+        });
+    } else {
+        exitPresentationMode();
+    }
+}
+
+function exitPresentationMode() {
+    document.getElementById('presentationMode').style.display = 'none';
+    document.getElementById('editMode').style.display = 'flex';
+    document.getElementById('toolbar').style.display = 'flex';
+    document.getElementById('slide-controls').style.display = 'none';
+    updateEditModeView();
+}
+
+function updatePresentationControls() {
+    const prevButton = document.getElementById('prevSlideBtn');
+    const nextButton = document.getElementById('nextSlideBtn');
+    prevButton.style.display = currentSlideIndex > 0 ? 'block' : 'none';
+    nextButton.style.display = currentSlideIndex < slides.length - 1 ? 'block' : 'none';
 }
 
 function updateFormatting() {
@@ -276,29 +393,29 @@ function updateFormatting() {
     const fontSize = document.getElementById('fontSizeSelector').value;
     const color = document.getElementById('textColorPicker').value;
 
-    ctx.font = `${fontSize}px ${font}`;
-    ctx.fillStyle = color;
+    const selectedElement = getSelectedElement();
+    if (selectedElement && selectedElement.type === 'text') {
+        selectedElement.font = `${fontSize}px ${font}`;
+        selectedElement.color = color;
+        renderSlideElements([selectedElement]);
+    }
 }
 
 // Event listeners
-document.getElementById('newSlideBtn').addEventListener('click', createNewSlide);
+document.getElementById('new-slide').addEventListener('click', () => createNewSlide());
 document.getElementById('undoBtn').addEventListener('click', undo);
 document.getElementById('redoBtn').addEventListener('click', redo);
-document.getElementById('presentBtn').addEventListener('click', startPresentation);
-document.getElementById('templateSelector').addEventListener('change', handleTemplateChange);
-document.getElementById('nextSlideBtn').addEventListener('click', nextSlide);
-document.getElementById('prevSlideBtn').addEventListener('click', previousSlide);
+document.getElementById('export-ppt').addEventListener('click', startPresentation);
+document.getElementById('template-select').addEventListener('change', applyTemplate);
+document.getElementById('nextSlideBtn').addEventListener('click', () => goToSlide(currentSlideIndex + 1));
+document.getElementById('prevSlideBtn').addEventListener('click', () => goToSlide(currentSlideIndex - 1));
 document.getElementById('deleteSlideBtn').addEventListener('click', deleteCurrentSlide);
 
 document.getElementById('fontSelector').addEventListener('change', updateFormatting);
 document.getElementById('fontSizeSelector').addEventListener('change', updateFormatting);
 document.getElementById('textColorPicker').addEventListener('change', updateFormatting);
-document.getElementById('boldBtn').addEventListener('click', () => {
-    ctx.font = ctx.font.includes('bold') ? ctx.font.replace('bold ', '') : 'bold ' + ctx.font;
-});
-document.getElementById('italicBtn').addEventListener('click', () => {
-    ctx.font = ctx.font.includes('italic') ? ctx.font.replace('italic ', '') : 'italic ' + ctx.font;
-});
+document.getElementById('boldBtn').addEventListener('click', toggleBold);
+document.getElementById('italicBtn').addEventListener('click', toggleItalic);
 
 // Accessibility feature event listeners
 document.getElementById('highContrastToggle').addEventListener('click', toggleHighContrast);
@@ -342,7 +459,7 @@ function speakSlideContent() {
 }
 
 // Initialize
-createNewSlide();
+createNewSlide('title');
 updateUndoRedoButtons();
 updateSlideNavigation();
 
@@ -364,11 +481,6 @@ function adjustFontSize(increase) {
     redrawSlide();
 }
 
-function speakSlideContent() {
-    const slideContent = getSlideContent(currentSlideIndex);
-    speakText(`Slide ${currentSlideIndex + 1}: ${slideContent}`);
-}
-
 function redrawSlide() {
     clearSlide();
     renderSlideElements(slides[currentSlideIndex].elements);
@@ -385,7 +497,7 @@ let userId;
 
 function initializeCollaboration() {
     socket = new WebSocket('ws://your-websocket-server-url');
-    userId = generateUserId(); // Implement this function to generate a unique user ID
+    userId = generateUserId();
 
     socket.onopen = () => {
         console.log('WebSocket connection established');
@@ -408,7 +520,7 @@ function initializeCollaboration() {
 
 function joinSession() {
     const urlParams = new URLSearchParams(window.location.search);
-    sessionId = urlParams.get('session') || generateSessionId(); // Implement generateSessionId() function
+    sessionId = urlParams.get('session') || generateSessionId();
     socket.send(JSON.stringify({ type: 'join', sessionId, userId }));
 }
 
@@ -420,7 +532,6 @@ function handleIncomingMessage(data) {
         case 'cursorMove':
             updateCursorPosition(data.userId, data.x, data.y);
             break;
-        // Add more cases for other types of updates
     }
 }
 
@@ -442,6 +553,117 @@ function sendCursorPosition(x, y) {
         x,
         y
     }));
+}
+
+// Helper functions
+function showLoadingIndicator() {
+    const loadingIndicator = document.createElement('div');
+    loadingIndicator.id = 'loadingIndicator';
+    loadingIndicator.innerHTML = `
+        <div class="spinner"></div>
+        <p>Generating content...</p>
+    `;
+    loadingIndicator.style.cssText = `
+        position: fixed;
+        top: 50%;
+        left: 50%;
+        transform: translate(-50%, -50%);
+        background-color: rgba(0, 0, 0, 0.7);
+        color: white;
+        padding: 20px;
+        border-radius: 10px;
+        text-align: center;
+        z-index: 9999;
+    `;
+    document.body.appendChild(loadingIndicator);
+}
+
+function hideLoadingIndicator() {
+    const loadingIndicator = document.getElementById('loadingIndicator');
+    if (loadingIndicator) {
+        loadingIndicator.remove();
+    }
+}
+
+function getSelectedElement() {
+    // This is a placeholder. In a real implementation, you'd track the currently selected element.
+    return slides[currentSlideIndex].elements[0];
+}
+
+function toggleBold() {
+    const selectedElement = getSelectedElement();
+    if (selectedElement && selectedElement.type === 'text') {
+        if (selectedElement.font.includes('bold')) {
+            selectedElement.font = selectedElement.font.replace('bold ', '');
+        } else {
+            selectedElement.font = 'bold ' + selectedElement.font;
+        }
+        renderSlideElements([selectedElement]);
+    }
+}
+
+function toggleItalic() {
+    const selectedElement = getSelectedElement();
+    if (selectedElement && selectedElement.type === 'text') {
+        if (selectedElement.font.includes('italic')) {
+            selectedElement.font = selectedElement.font.replace('italic ', '');
+        } else {
+            selectedElement.font = 'italic ' + selectedElement.font;
+        }
+        renderSlideElements([selectedElement]);
+    }
+}
+
+function deleteCurrentSlide() {
+    if (slides.length > 1) {
+        slides.splice(currentSlideIndex, 1);
+        currentSlideIndex = Math.max(0, currentSlideIndex - 1);
+        loadSlide(currentSlideIndex);
+        updateSlideNavigation();
+    } else {
+        alert('Cannot delete the last slide.');
+    }
+}
+
+function savePresentation() {
+    const presentationData = JSON.stringify(slides);
+    // This is a placeholder. In a real implementation, you'd save this data to a file or server.
+    console.log('Saving presentation:', presentationData);
+    alert('Presentation saved!');
+}
+
+function generateUserId() {
+    return 'user_' + Math.random().toString(36).substr(2, 9);
+}
+
+function generateSessionId() {
+    return 'session_' + Math.random().toString(36).substr(2, 9);
+}
+
+function getSlideContent(index) {
+    return slides[index].elements.map(element => element.content).join(' ');
+}
+
+function updateSlideContent(slideIndex, content) {
+    if (slides[slideIndex]) {
+        slides[slideIndex].content = content;
+        if (slideIndex === currentSlideIndex) {
+            loadCanvasState(content);
+        }
+        updateSlideNavigation();
+    }
+}
+
+function updateCursorPosition(userId, x, y) {
+    let cursor = document.getElementById(`cursor-${userId}`);
+    if (!cursor) {
+        cursor = document.createElement('div');
+        cursor.id = `cursor-${userId}`;
+        cursor.className = 'remote-cursor';
+        document.body.appendChild(cursor);
+    }
+    cursor.style.left = `${x}px`;
+    cursor.style.top = `${y}px`;
 }
 
 // Call this function when the application starts
