@@ -1,0 +1,21 @@
+Outline for GUI Feature Development Plan:
+- Develop a clean and intuitive interface that emulates the user experience of Google Slides and Microsoft PowerPoint.
+- Implement a responsive design that adapts to various screen sizes and user preferences.
+- Integrate auto-prompt and Copilot-like features into the GUI to assist users in creating content.
+- Include a library of user-related templates that can be customized and saved.
+- Incorporate verbal communication features for hands-free control and accessibility.
+- Ensure the application's GUI is built with open-source tools and libraries to keep it free for Linux users.
+- Plan for easy navigation and interaction with the application's features, including data integration and collaboration tools.
+
+### TODO LIST
+- [X] Implement a canvas-based slide editor similar to Google Slides and Microsoft Slides.
+- [X] Integrate user-related templates for slide creation.
+- [X] Add auto-prompt features for slide content generation using the AI model.
+- [X] Implement Copilot-like features for development changes and suggestions.
+- [X] Enable verbal communication features using speech-to-text and text-to-speech functionalities.
+- [X] Design an intuitive and user-friendly UI/UX that aligns with the user's vision.
+- [X] Ensure the application supports creating, editing, and managing slides.
+- [X] Integrate the ability to apply templates to slides.
+- [X] Implement real-time collaboration features for multiple users.
+- [X] Add accessibility features to ensure the application is usable by all users.
+- [ ] Test the UI/UX features to ensure they work as expected and meet the user's requirements.
