@@ -1,0 +1,46 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>AI PowerPoint Maker</title>
+    <link rel="stylesheet" href="styles.css">
+</head>
+<body>
+    <header>
+        <h1>AI PowerPoint Maker</h1>
+    </header>
+    <nav class="toolbar">
+        <button id="newSlide">New Slide</button>
+        <select id="templateSelect">
+            <option value="">Select Template</option>
+            <!-- Template options will be dynamically populated -->
+        </select>
+        <button id="autoPrompt">Auto-Prompt</button>
+        <button id="voiceCommand">Voice Command</button>
+        <button id="generateAIContent">Generate AI Content</button>
+        <button id="brandSync">Brand Sync</button>
+        <button id="exportPPT">Export to PowerPoint</button>
+    </nav>
+    <main>
+        <div id="slideCanvas">
+            <!-- Slide content will be dynamically inserted here -->
+        </div>
+    </main>
+    <aside id="sidebar">
+        <h2>Copilot Suggestions</h2>
+        <div id="suggestions">
+            <!-- AI suggestions will be dynamically inserted here -->
+        </div>
+        <h2>Analytics</h2>
+        <div id="analytics">
+            <!-- Analytics data will be dynamically inserted here -->
+        </div>
+    </aside>
+    <div id="aiPromptContainer">
+        <label for="aiPrompt">Enter your prompt:</label>
+        <input type="text" id="aiPrompt" name="aiPrompt">
+    </div>
+    <script src="renderer.js"></script>
+</body>
+</html>
