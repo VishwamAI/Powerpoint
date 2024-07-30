@@ -1,0 +1,36 @@
+{
+  "name": "ppt_maker_desktop",
+  "productName": "ppt_maker_desktop",
+  "version": "1.0.0",
+  "description": "My Electron application description",
+  "main": "src/index.js",
+  "scripts": {
+    "start": "electron-forge start -- --no-sandbox",
+    "package": "electron-forge package",
+    "make": "electron-forge make",
+    "publish": "electron-forge publish",
+    "lint": "echo \"No linting configured\"",
+    "test": "electron-mocha --renderer test/**/*.spec.js"
+  },
+  "devDependencies": {
+    "@electron-forge/cli": "^7.4.0",
+    "@electron-forge/maker-deb": "^7.4.0",
+    "@electron-forge/maker-rpm": "^7.4.0",
+    "@electron-forge/maker-squirrel": "^7.4.0",
+    "@electron-forge/maker-zip": "^7.4.0",
+    "@electron-forge/plugin-auto-unpack-natives": "^7.4.0",
+    "@electron-forge/plugin-fuses": "^7.4.0",
+    "@electron/fuses": "^1.8.0",
+    "axe-core": "^4.10.0",
+    "electron": "^31.3.1",
+    "electron-mocha": "^13.0.0",
+    "lighthouse": "^12.1.0"
+  },
+  "keywords": [],
+  "author": "devin-ai-integration[bot] <158243242+devin-ai-integration[bot]@users.noreply.github.com>",
+  "license": "MIT",
+  "dependencies": {
+    "electron-speech": "^1.0.4",
+    "electron-squirrel-startup": "^1.0.1"
+  }
+}
